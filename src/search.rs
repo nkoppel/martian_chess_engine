@@ -8,6 +8,8 @@ use std::mem;
 use std::io::Write;
 use std::time::{Duration, SystemTime};
 
+const TABLE_SIZE: usize = 65537;
+
 pub struct Searcher<'a> {
     pos: Position<'a>,
     moves: Vec<Vec<Board>>,
@@ -19,7 +21,7 @@ impl<'a> Searcher<'a> {
         Self {
             pos,
             moves: Vec::new(),
-            transposition: vec![(Board::empty(), false, 0, 0); 65537]
+            transposition: vec![(Board::empty(), false, 0, 0); TABLE_SIZE]
         }
     }
 

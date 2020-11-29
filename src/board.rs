@@ -171,7 +171,21 @@ impl Board {
         Board(out)
     }
 
-    // pub fn do_string_move(&self, )
+    pub fn do_string_move(&self, s: &str) -> Board {
+        let mut chars = s.chars();
+
+        let l1 = chars.next().unwrap();
+        let n1 = chars.next().unwrap();
+        let l2 = chars.next().unwrap();
+        let n2 = chars.next().unwrap();
+
+        let x1 = 3 - (l1 as usize - 97);
+        let x2 = 3 - (l2 as usize - 97);
+        let y1 = n1 as usize - 49;
+        let y2 = n2 as usize - 49;
+
+        self.do_move(x1 + y1 * 4, x2 + y2 * 4)
+    }
 
     pub fn game_end(&self) -> bool {
         self.0 & PLAYER == 0 || self.0 & !PLAYER == 0
