@@ -46,6 +46,20 @@ impl Iterator for LocStack64 {
     }
 }
 
+pub fn print_move(mov: (usize, usize)) {
+    let letters = "dcba".chars().collect::<Vec<_>>();
+    let digits  = "9876543210".chars().collect::<Vec<_>>();
+
+    let mut out = String::new();
+
+    out.push(letters[mov.0 % 4]);
+    out.push(digits [mov.0 / 4]);
+    out.push(letters[mov.1 % 4]);
+    out.push(digits [mov.1 / 4]);
+
+    println!("{}", out);
+}
+
 pub fn print_u32(board: u32) {
     println!("{:#08x}", board);
 
@@ -130,6 +144,7 @@ fn gen_att(sq: usize, dist: usize, deltas: &Vec<(isize, isize)>, board: u32)
 
 fn piece_properties() -> Vec<(usize, Vec<(isize, isize)>)> {
     vec![
+        // (1, vec![(-1, -1), (1, -1), (-1,  1), (1,  1), (-1,  0), (0, -1), ( 1,  0), (0,  1)]),
         (1, vec![(-1, -1), (1, -1), (-1,  1), (1,  1)]),
         (2, vec![(-1,  0), (0, -1), ( 1,  0), (0,  1)]),
         (9, vec![(-1,  0), (1,  0), (-1, -1), (1, -1), (-1, 1), (1, 1)]),

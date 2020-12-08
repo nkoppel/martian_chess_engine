@@ -8,7 +8,7 @@ use std::mem;
 use std::io::Write;
 use std::time::{Duration, SystemTime};
 
-const TABLE_SIZE: usize = 65537;
+const TABLE_SIZE: usize = 1_048_573;
 
 pub struct Searcher<'a> {
     pos: Position<'a>,
@@ -30,13 +30,37 @@ impl<'a> Searcher<'a> {
                  beta: i32,
                  depth: usize) -> i32
     {
-        if self.pos.board.game_end() || depth == 0 {
+        let mut ind = 0;
+        let mut replace = false;
+
+        if self.pos.board.game_end(){
+            return self.pos.get_score() * 100;
+        }
+
+        if depth == 0 {
             return self.pos.get_score();
         }
 
+        if depth > 3 {
+            ind = (self.pos.board.0 % TABLE_SIZE as u64) as usize;
+            let (board, play, depth2, score) = self.transposition[ind];
+
+            let board_eq = self.pos.board == board && self.pos.get_player() == play;
+
+            if depth2 >= depth && board_eq {
+                return self.pos.get_score() + score;
+            } else if depth > depth2 || !board_eq {
+                replace = true;
+            }
+        }
+
         let mut moves = mem::replace(&mut self.moves[depth], Vec::new());
+        let mut retbeta = false;
 
         self.pos.gen_moves(&mut moves);
+
+        let mut prev_best_score = i32::MIN;
+        let mut prev_best_ind = 0;
 
         for m in moves.iter() {
             let u = self.pos.do_move(*m);
@@ -44,7 +68,8 @@ impl<'a> Searcher<'a> {
             self.pos.undo_move(u);
 
             if score >= beta {
-                return beta;
+                retbeta = true;
+                break;
             }
             if score > alpha {
                 alpha = score;
@@ -54,7 +79,13 @@ impl<'a> Searcher<'a> {
         moves.clear();
         self.moves[depth] = moves;
 
-        return alpha;
+        let out = if retbeta {beta} else {alpha};
+
+        if replace {
+            self.transposition[ind] = (self.pos.board, self.pos.get_player(), depth, out - self.pos.get_score())
+        }
+
+        out
     }
 
     fn best_move(&mut self, depth: usize, lastbest: Option<Board>)

@@ -110,12 +110,26 @@ impl<'a> Position<'a> {
         true
     }
 
-    pub fn get_score(&self) -> i32 {
+    fn negate_if_player(&self, i: i32) -> i32 {
         if self.player {
-            -self.score
+            -i
         } else {
-            self.score
+            i
         }
+    }
+
+    pub fn get_score(&self) -> i32 {
+        self.negate_if_player(self.score)
+    }
+
+    pub fn player_value(&self) -> i32 {
+        self.negate_if_player(self.board.player_value())
+    }
+
+    pub fn eval(&self) -> i32 {
+        self.negate_if_player(
+            self.score * 100 + self.board.player_value()
+        )
     }
 
     pub fn get_player(&self) -> bool {
@@ -124,6 +138,21 @@ impl<'a> Position<'a> {
 
     pub fn gen_moves(&self, out: &mut Vec<Board>) {
         self.board.gen_moves(self.player, self.prev, self.tables, out)
+    }
+
+    pub fn get_move(&self) -> (usize, usize) {
+        let mut diff = self.prev.0 ^ self.board.0;
+        diff |= diff >> 32;
+
+        let mut locs = LocStack64(diff);
+        let loc1 = locs.next().unwrap();
+        let loc2 = locs.next().unwrap();
+
+        if self.prev.0 & (SQUARE << loc1) == 0 {
+            (loc1, loc2)
+        } else {
+            (loc2, loc1)
+        }
     }
 }
 

@@ -66,6 +66,19 @@ impl Board {
         out
     }
 
+    pub fn player_value(&self) -> i32 {
+        let block = (1 << 16) - 1;
+        let mut out = 0;
+
+        out -= (self.0 & (block      )).count_ones() as i32;
+        out -= (self.0 & (block << 32)).count_ones() as i32 * 2;
+
+        out += (self.0 & (block << 16)).count_ones() as i32;
+        out += (self.0 & (block << 48)).count_ones() as i32 * 2;
+
+        out
+    }
+
     fn do_moves(&self, sq: usize, moves: u32, boards: &mut Vec<Board>) {
         let mut piece = self.0;
         piece &= SQUARE << sq;
@@ -196,10 +209,18 @@ use std::fmt;
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for y in (0..8).rev() {
+        let player = true;
+
+        let mut y_iter: Box<Iterator<Item = usize>> =
+            if player {Box::new(0..8)} else {Box::new((0..8).rev())};
+
+        for y in y_iter {
             write!(f, "{}  ", y + 1);
 
-            for x in (0..4).rev() {
+            let mut x_iter: Box<Iterator<Item = usize>> =
+                if player {Box::new(0..4)} else {Box::new((0..4).rev())};
+
+            for x in x_iter {
                 let sq = x + y * 4;
                 let mut tmp = 0;
 
@@ -218,7 +239,12 @@ impl fmt::Display for Board {
             writeln!(f)?;
         }
         writeln!(f)?;
-        writeln!(f, "   A B C D");
+
+        if player {
+            writeln!(f, "   D C B A");
+        } else {
+            writeln!(f, "   A B C D");
+        }
 
         Ok(())
     }

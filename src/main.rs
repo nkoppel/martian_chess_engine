@@ -15,8 +15,8 @@ fn main() {
     let mut in_lines = stdin.lock().lines();
 
     let tables = Tables::new();
-    // let mut pos = Position::new(&tables);
-    let mut pos = Position::from_fen("ec800137ca600653 0000000000000000 1 0", &tables);
+    let mut pos = Position::new(&tables);
+    // let mut pos = Position::from_fen("ec200a27ca406643 ec100a27ca406643 1 0", &tables);
 
     while !pos.board.game_end() {
         println!("{}", pos.to_fen());
@@ -30,7 +30,11 @@ fn main() {
         let mut searcher = Searcher::new(pos);
         let (mov, score) = searcher.ab_search(5000);
 
+        println!("{}", score);
+
         pos = searcher.into_position(); 
         pos.do_move(mov.unwrap());
+
+        print_move(pos.get_move());
     }
 }
