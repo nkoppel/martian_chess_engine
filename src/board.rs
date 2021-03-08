@@ -387,7 +387,7 @@ impl fmt::Display for Board {
             if player {Box::new(0..8)} else {Box::new((0..8).rev())};
 
         for y in y_iter {
-            write!(f, "{}  ", y + 1);
+            write!(f, "{}  ", y + 1)?;
 
             let mut x_iter: Box<Iterator<Item = usize>> =
                 if player {Box::new(0..4)} else {Box::new((0..4).rev())};
@@ -413,9 +413,9 @@ impl fmt::Display for Board {
         writeln!(f)?;
 
         if player {
-            writeln!(f, "   D C B A");
+            writeln!(f, "   D C B A")?;
         } else {
-            writeln!(f, "   A B C D");
+            writeln!(f, "   A B C D")?;
         }
 
         Ok(())

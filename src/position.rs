@@ -1,6 +1,7 @@
 use super::gen_tables::*;
 use super::board::*;
 
+#[derive(Clone)]
 pub struct Position<'a> {
     pub board: Board,
     prev: Board,
@@ -186,8 +187,8 @@ use std::fmt;
 
 impl fmt::Display for Position<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "p{} {}", self.player as usize + 1, self.score);
-        writeln!(f);
+        writeln!(f, "p{} {}", self.player as usize + 1, self.score)?;
+        writeln!(f)?;
         writeln!(f, "{}", self.board)?;
 
         Ok(())

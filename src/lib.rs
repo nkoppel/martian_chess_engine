@@ -1,4 +1,5 @@
 #![feature(test)]
+#![feature(get_mut_unchecked)]
 
 mod gen_tables;
 mod board;

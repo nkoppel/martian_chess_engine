@@ -46,7 +46,7 @@ impl Iterator for LocStack64 {
     }
 }
 
-pub fn print_move(mov: (usize, usize)) {
+pub fn stringify_move(mov: (usize, usize)) -> String {
     let letters = "dcba".chars().collect::<Vec<_>>();
     let digits  = "12345678".chars().collect::<Vec<_>>();
 
@@ -66,7 +66,11 @@ pub fn print_move(mov: (usize, usize)) {
         out.push(digits [mov.1 / 4]);
     }
 
-    println!("{}", out);
+    out
+}
+
+pub fn print_move(mov: (usize, usize)) {
+    println!("{}", stringify_move(mov));
 }
 
 pub fn print_u32(board: u32) {
