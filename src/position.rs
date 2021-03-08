@@ -9,6 +9,18 @@ pub struct Position<'a> {
     score: i32
 }
 
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub struct JsPosition {
+    pub board: JsBoard,
+    pub prev: JsBoard,
+    pub player: bool,
+    pub score: i32
+}
+
 impl<'a> Position<'a> {
     pub fn new(tables: &'a Tables) -> Self {
         Self {
@@ -56,6 +68,27 @@ impl<'a> Position<'a> {
         out.score = words.next().unwrap().parse::<i32>().unwrap();
 
         out
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn to_js(&self) -> JsPosition {
+        JsPosition {
+            board: self.board.to_js(),
+            prev: self.prev.to_js(),
+            player: self.player,
+            score: self.score
+        }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn from_js(tables: &'a Tables, jspos: JsPosition) -> Self {
+        Self {
+            board: Board::from_js(jspos.board),
+            prev: Board::from_js(jspos.prev),
+            tables,
+            player: jspos.player,
+            score: jspos.score
+        }
     }
 
     pub fn do_move(&mut self, new_board: Board) -> Board {

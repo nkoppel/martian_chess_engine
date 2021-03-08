@@ -1,8 +1,20 @@
 use super::gen_tables::*;
+use std::mem;
 use packed_simd::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Board(pub u64);
+
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct JsBoard {
+    pub upper: i32,
+    pub lower: i32
+}
 
 pub const SQUARE: u64 = 0x100000001;
 const PLAYER: u64 = 0x0000ffff0000ffff;
@@ -31,6 +43,25 @@ impl Board {
         }
 
         Self(out)
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn to_js(&self) -> JsBoard {
+        unsafe {
+            let out = mem::transmute::<_, [i32; 2]>(self.0);
+
+            JsBoard {
+                upper: out[0],
+                lower: out[1]
+            }
+        }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn from_js(jsboard: JsBoard) -> Self {
+        unsafe {
+            Board(mem::transmute::<_, u64>([jsboard.upper, jsboard.lower]))
+        }
     }
 
     pub fn new() -> Self {
