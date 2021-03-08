@@ -113,11 +113,11 @@ fn num_to_mask(num: u32, mask: u32) -> u32 {
     out
 }
 
-pub fn within_board(x: isize, y: isize) -> bool {
+fn within_board(x: isize, y: isize) -> bool {
     x >= 0 && x < 4 && y >= 0 && y < 8
 }
 
-fn gen_att(sq: usize, dist: usize, deltas: &Vec<(isize, isize)>, board: u32)
+fn gen_att(sq: usize, dist: usize, deltas: &Vec<(isize, isize)>, board: u32, field: bool)
     -> u32
 {
     let startx = (sq % 4) as isize;
@@ -143,7 +143,7 @@ fn gen_att(sq: usize, dist: usize, deltas: &Vec<(isize, isize)>, board: u32)
             i += 1;
         }
 
-        if within_board(x, y) && i < dist && (y >= 4) != (starty >= 4) {
+        if within_board(x, y) && i < dist && (field || ((y >= 4) != (starty >= 4))) {
             out |= 1 << (x + y * 4);
         }
     }
@@ -155,6 +155,7 @@ fn piece_properties() -> Vec<(usize, Vec<(isize, isize)>)> {
     vec![
         // (1, vec![(-1, -1), (1, -1), (-1,  1), (1,  1), (-1,  0), (0, -1), ( 1,  0), (0,  1)]),
         (1, vec![(-1, -1), (1, -1), (-1,  1), (1,  1)]),
+        (2, vec![(-1,  0), (0, -1), ( 1,  0), (0,  1)]),
         (2, vec![(-1,  0), (0, -1), ( 1,  0), (0,  1)]),
         (9, vec![(-1,  0), (1,  0), (-1, -1), (1, -1), (-1, 1), (1, 1)]),
         (9, vec![( 0, -1), (0,  1)])
@@ -169,7 +170,7 @@ fn gen_masks() -> Vec<Vec<u32>> {
         let mut o = Vec::new();
 
         for sq in 0..32 {
-            o.push(gen_att(sq, dist, &deltas, 0));
+            o.push(gen_att(sq, dist, &deltas, 0, false));
         }
 
         out.push(o);
@@ -184,7 +185,7 @@ fn gen_occ_att() -> Vec<Vec<Vec<(u32, u32)>>> {
 
     let mut out = Vec::new();
 
-    for piece in 1..4 {
+    for piece in 1..5 {
         let (dist, deltas) = &props[piece];
         let mut pout = Vec::new();
 
@@ -195,7 +196,7 @@ fn gen_occ_att() -> Vec<Vec<Vec<(u32, u32)>>> {
 
             for i in 0..size {
                 let board = num_to_mask(i as u32, mask);
-                sout[i] = (board, gen_att(sq, *dist, deltas, board));
+                sout[i] = (board, gen_att(sq, *dist, deltas, board, piece == 2));
             }
             pout.push(sout)
         }
@@ -273,18 +274,13 @@ fn gen_sliding_table() -> Vec<Vec<(u32, u32, usize, Vec<u32>)>> {
     let occ_atts = gen_occ_att();
     let mut out = Vec::new();
 
-    for piece in 1..4 {
+    for piece in 1..5 {
         let mut pout = Vec::new();
 
         for sq in 0..32 {
             let mask = masks[piece][sq];
             let occ_att = &occ_atts[piece - 1][sq];
-            let bits =
-                if piece == 2 && sq == 2 {
-                    mask.count_ones() as usize + 1
-                } else {
-                    mask.count_ones() as usize + 1
-                };
+            let bits = mask.count_ones() as usize + 1;
 
             let magic = gen_magic(occ_att, bits);
             let table = gen_magic_table(occ_att, bits, magic);
@@ -300,6 +296,7 @@ fn gen_sliding_table() -> Vec<Vec<(u32, u32, usize, Vec<u32>)>> {
 pub struct Tables {
     pub pawn: Vec<u32>,
     pub drone: Vec<(u32, u32, usize, Vec<u32>)>,
+    pub field_drone: Vec<(u32, u32, usize, Vec<u32>)>,
     pub queen1: Vec<(u32, u32, usize, Vec<u32>)>,
     pub queen2: Vec<(u32, u32, usize, Vec<u32>)>,
 }
@@ -311,9 +308,18 @@ impl Tables {
 
         Self {
             pawn: masks.next().unwrap(),
-            drone:  sliding.next().unwrap(),
+            drone: sliding.next().unwrap(),
+            field_drone: sliding.next().unwrap(),
             queen1: sliding.next().unwrap(),
             queen2: sliding.next().unwrap(),
         }
     }
+}
+
+
+#[test]
+fn t_gen_tables() {
+    let tables = Tables::new();
+
+    assert_eq!(tables.queen2.len(), 32);
 }

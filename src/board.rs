@@ -127,6 +127,17 @@ impl Board {
         table[o as usize]
     }
 
+    fn gen_field_drone_moves(tables: &Tables, sq: usize, occ: u32) -> u32 {
+        let (mask, magic, shift, table) = &tables.field_drone[sq];
+        let mut o = occ;
+
+        o &= *mask;
+        o = o.overflowing_mul(*magic).0;
+        o >>= *shift;
+
+        table[o as usize]
+    }
+
     fn gen_queen_moves(tables: &Tables, sq: usize, occ: u32) -> u32 {
         let (mask, magic, shift, table) = &tables.queen1[sq];
         let mut o = occ;
@@ -147,7 +158,7 @@ impl Board {
         moves | table[o as usize]
     }
 
-    fn do_moves(&self, sq: usize, moves: u32, boards: &mut Vec<Board>) {
+    fn do_moves(&self, sq: usize, moves: u32, out: &mut Vec<Board>) {
         let mut piece = self.0;
         piece &= SQUARE << sq;
         piece >>= sq;
@@ -160,7 +171,21 @@ impl Board {
             b &= !(SQUARE << sq2);
             b |= piece << sq2;
 
-            boards.push(Board(b));
+            out.push(Board(b));
+        }
+    }
+
+    fn do_field_moves(&self, sq: usize, moves: u32, out: &mut Vec<Board>) {
+        let piece_low = (self.0 & 1 << sq) >> sq;
+        let board = self.0 & !(SQUARE << sq);
+
+        for sq2 in LocStack(moves) {
+            let mut b = board;
+
+            b |= 1 << sq2 + 32;
+            b ^= piece_low << sq2;
+
+            out.push(Board(b));
         }
     }
 
@@ -175,18 +200,50 @@ impl Board {
         let player = if player {!PLAYER} else {PLAYER};
         let player_board = Board(self.0 & player);
 
+        let pawns  = self.pawns();
+        let drones = self.drones();
+        let queens = self.queens();
+
+        let has_drones = drones & player as u32 != 0;
+        let has_queens = queens & player as u32 != 0;
+
         let player_occ = player_board.occ();
         let occ = self.occ();
 
-        for sq in LocStack(player_board.pawns()) {
-            let moves = tables.pawn[sq] & !player_occ;
+        let mut pawn_field_occ = 0;
 
-            self.do_moves(sq, moves, &mut out);
+        if !has_drones {
+            pawn_field_occ |= pawns;
         }
 
-        for sq in LocStack(player_board.drones()) {
-            let moves = Self::gen_drone_moves(&tables, sq, occ);
-            self.do_moves(sq, moves, &mut out);
+        if !has_queens {
+            pawn_field_occ |= drones;
+        }
+
+        pawn_field_occ &= player as u32;
+
+        for sq in LocStack(player_board.pawns()) {
+            let moves = tables.pawn[sq];
+
+            self.do_moves(sq, moves & !player_occ, &mut out);
+            self.do_field_moves(sq, moves & pawn_field_occ, &mut out);
+        }
+
+        if has_queens {
+            for sq in LocStack(player_board.drones()) {
+                let moves = Self::gen_drone_moves(&tables, sq, occ);
+                self.do_moves(sq, moves, &mut out);
+            }
+        } else {
+            for sq in LocStack(player_board.drones()) {
+                let mut moves = Self::gen_field_drone_moves(&tables, sq, occ);
+                let field_moves = moves & player as u32 & pawns;
+
+                moves &= !field_moves;
+
+                self.do_moves(sq, moves, &mut out);
+                self.do_field_moves(sq, field_moves, &mut out);
+            }
         }
 
         for sq in LocStack(player_board.queens()) {
@@ -390,5 +447,22 @@ mod tests {
         let tables = Tables::new();
 
         b.iter(|| {test::black_box(&board).gen_takes(false, Board(0), &tables, &mut moves); moves.clone()});
+    }
+
+    #[test]
+    fn t_field_promotions() {
+        let board = Board::from_desc("4/4/4/1p1p/2p1/1p1p/4/4");
+        let tables = Tables::new();
+        let mut moves = Vec::new();
+
+        board.gen_moves(false, Board(0), &tables, &mut moves);
+
+        assert_eq!(moves.len(), 10);
+
+        let board2 = Board::from_desc("4/4/4/2p1/1pdp/2p1/2p1/4");
+
+        board2.gen_moves(false, Board(0), &tables, &mut moves);
+
+        assert_eq!(moves.len(), 14);
     }
 }
