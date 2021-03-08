@@ -181,7 +181,7 @@ impl Board {
         for sq2 in LocStack(moves) {
             let mut b = board;
 
-            b |= 1 << sq2 + 32;
+            b |= 1 << (sq2 + 32);
             b ^= piece_low << sq2;
 
             out.push(Board(b));
@@ -335,7 +335,7 @@ impl Board {
             let piece_low = (self.0 & 1 << loc1) >> loc1;
             let mut out = self.0 & !(SQUARE << loc1);
 
-            out |= 1 << loc2 + 32;
+            out |= 1 << (loc2 + 32);
             out ^= piece_low << loc2;
 
             Board(out)
@@ -418,6 +418,12 @@ impl fmt::Display for Board {
         }
 
         Ok(())
+    }
+}
+
+impl Default for Board {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

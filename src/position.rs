@@ -27,7 +27,7 @@ impl<'a> Position<'a> {
         Self {
             board: Board::new(),
             prev: Board::empty(),
-            tables: tables,
+            tables,
             player: false,
             score: 0
         }
@@ -55,7 +55,7 @@ impl<'a> Position<'a> {
 
     #[allow(dead_code)]
     pub fn from_fen(fen: &str, tables: &'a Tables) -> Self {
-        let mut words = fen.split(" ");
+        let mut words = fen.split(' ');
         let mut out = Position::new(tables);
 
         let board = words.next().unwrap();

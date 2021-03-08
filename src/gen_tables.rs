@@ -120,10 +120,10 @@ fn num_to_mask(num: u32, mask: u32) -> u32 {
 }
 
 fn within_board(x: isize, y: isize) -> bool {
-    x >= 0 && x < 4 && y >= 0 && y < 8
+    (0..4).contains(&x) && (0..8).contains(&y)
 }
 
-fn gen_att(sq: usize, dist: usize, deltas: &Vec<(isize, isize)>, board: u32, field: bool)
+fn gen_att(sq: usize, dist: usize, deltas: &[(isize, isize)], board: u32, field: bool)
     -> u32
 {
     let startx = (sq % 4) as isize;
@@ -197,12 +197,11 @@ fn gen_occ_att() -> Vec<Vec<Vec<(u32, u32)>>> {
 
         for sq in 0..32 {
             let mask = masks[piece][sq];
-            let size = 1 << mask.count_ones();
-            let mut sout = vec![(0, 0); size];
+            let mut sout = vec![(0, 0); 1 << mask.count_ones()];
 
-            for i in 0..size {
+            for (i, s) in sout.iter_mut().enumerate() {
                 let board = num_to_mask(i as u32, mask);
-                sout[i] = (board, gen_att(sq, *dist, deltas, board, piece == 2));
+                *s = (board, gen_att(sq, *dist, deltas, board, piece == 2));
             }
             pout.push(sout)
         }
@@ -215,7 +214,7 @@ fn gen_occ_att() -> Vec<Vec<Vec<(u32, u32)>>> {
 
 fn test_magic(table: &mut Vec<u32>,
               changed: &mut Vec<usize>,
-              occ_att: &Vec<(u32, u32)>,
+              occ_att: &[(u32, u32)],
               bits: usize,
               magic: u32)
     -> bool
@@ -243,7 +242,7 @@ fn test_magic(table: &mut Vec<u32>,
     true
 }
 
-fn gen_magic_table(occ_att: &Vec<(u32, u32)>, bits: usize, magic: u32)
+fn gen_magic_table(occ_att: &[(u32, u32)], bits: usize, magic: u32)
     -> Vec<u32>
 {
     let size = 1 << bits;
@@ -258,7 +257,7 @@ fn gen_magic_table(occ_att: &Vec<(u32, u32)>, bits: usize, magic: u32)
     table
 }
 
-fn gen_magic(occ_att: &Vec<(u32, u32)>, bits: usize) -> u32 {
+fn gen_magic(occ_att: &[(u32, u32)], bits: usize) -> u32 {
     let size = 1 << bits;
     let mut table = vec![u32::MAX; size];
     let mut changed = vec![0; size];
@@ -274,6 +273,7 @@ fn gen_magic(occ_att: &Vec<(u32, u32)>, bits: usize) -> u32 {
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn gen_sliding_table() -> Vec<Vec<(u32, u32, usize, Vec<u32>)>> {
     let masks = gen_masks();
     let occ_atts = gen_occ_att();
@@ -321,6 +321,11 @@ impl Tables {
     }
 }
 
+impl Default for Tables {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 #[test]
 fn t_gen_tables() {

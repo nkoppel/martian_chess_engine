@@ -191,7 +191,7 @@ impl<'a> Searcher<'a> {
         moves.clear();
         self.moves[depth] = moves;
 
-        return (best_move, best_score);
+        (best_move, best_score)
     }
 
     pub fn into_position(self) -> Position<'a> {
