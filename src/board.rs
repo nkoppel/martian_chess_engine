@@ -332,18 +332,28 @@ impl Board {
     }
 
     pub fn do_move(&self, loc1: usize, loc2: usize) -> Board {
-        let mut piece = self.0;
-        piece &= SQUARE << loc1;
-        piece >>= loc1;
+        if (loc1 < 16) == (loc2 < 16) && self.occ() & 1 << loc2 != 0 {
+            let piece_low = (self.0 & 1 << loc1) >> loc1;
+            let mut out = self.0 & !(SQUARE << loc1);
 
-        let mut out = self.0;
+            out |= 1 << loc2 + 32;
+            out ^= piece_low << loc2;
 
-        out &= !(SQUARE << loc1);
-        out &= !(SQUARE << loc2);
+            Board(out)
+        } else {
+            let mut piece = self.0;
+            piece &= SQUARE << loc1;
+            piece >>= loc1;
 
-        out |= piece << loc2;
+            let mut out = self.0;
 
-        Board(out)
+            out &= !(SQUARE << loc1);
+            out &= !(SQUARE << loc2);
+
+            out |= piece << loc2;
+
+            Board(out)
+        }
     }
 
     pub fn do_string_move(&self, s: &str) -> Board {
