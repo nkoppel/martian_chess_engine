@@ -1,5 +1,5 @@
-use crate::gen_tables::*;
-use crate::board::*;
+use super::gen_tables::*;
+use super::board::*;
 
 pub struct Position<'a> {
     pub board: Board,
@@ -140,15 +140,23 @@ impl<'a> Position<'a> {
         self.board.gen_moves(self.player, self.prev, self.tables, out)
     }
 
+    pub fn gen_takes(&self, out: &mut Vec<Board>) {
+        self.board.gen_takes(self.player, self.prev, self.tables, out)
+    }
+
     pub fn get_move(&self) -> (usize, usize) {
         let mut diff = self.prev.0 ^ self.board.0;
         diff |= diff >> 32;
 
         let mut locs = LocStack64(diff);
         let loc1 = locs.next().unwrap();
-        let loc2 = locs.next().unwrap();
+        let mut loc2 = 32;
 
-        if self.prev.0 & (SQUARE << loc1) == 0 {
+        if let Some(l) = locs.next() {
+            loc2 = l;
+        }
+
+        if self.board.0 & (SQUARE << loc1) == 0 {
             (loc1, loc2)
         } else {
             (loc2, loc1)
@@ -160,7 +168,7 @@ use std::fmt;
 
 impl fmt::Display for Position<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "p{} {}", self.player as usize + 1, self.get_score());
+        writeln!(f, "p{} {}", self.player as usize + 1, self.score);
         writeln!(f);
         writeln!(f, "{}", self.board)?;
 

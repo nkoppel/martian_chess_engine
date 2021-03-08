@@ -1,3 +1,5 @@
+#![feature(test)]
+
 mod gen_tables;
 mod board;
 mod position;
@@ -28,7 +30,7 @@ fn main() {
         println!("{}", pos);
 
         let mut searcher = Searcher::new(pos);
-        let (mov, score) = searcher.ab_search(5000);
+        let (mov, score) = searcher.ab_search(100);
 
         println!("{}", score);
 

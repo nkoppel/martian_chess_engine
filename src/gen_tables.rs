@@ -48,14 +48,23 @@ impl Iterator for LocStack64 {
 
 pub fn print_move(mov: (usize, usize)) {
     let letters = "dcba".chars().collect::<Vec<_>>();
-    let digits  = "9876543210".chars().collect::<Vec<_>>();
+    let digits  = "12345678".chars().collect::<Vec<_>>();
 
     let mut out = String::new();
 
-    out.push(letters[mov.0 % 4]);
-    out.push(digits [mov.0 / 4]);
-    out.push(letters[mov.1 % 4]);
-    out.push(digits [mov.1 / 4]);
+    if mov.0 > 31 {
+        out.push('?');
+    } else {
+        out.push(letters[mov.0 % 4]);
+        out.push(digits [mov.0 / 4]);
+    }
+
+    if mov.1 > 31 {
+        out.push('?');
+    } else {
+        out.push(letters[mov.1 % 4]);
+        out.push(digits [mov.1 / 4]);
+    }
 
     println!("{}", out);
 }

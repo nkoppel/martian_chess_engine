@@ -1,6 +1,6 @@
-use crate::gen_tables::*;
-use crate::board::*;
-use crate::position::*;
+use super::gen_tables::*;
+use super::board::*;
+use super::position::*;
 
 use std::collections::HashMap;
 use std::mem;
@@ -25,6 +25,60 @@ impl<'a> Searcher<'a> {
         }
     }
 
+    fn sort_moves(&self, moves: &mut Vec<Board>) {
+        let mut moves2 =
+            moves.iter().map(|board| {
+                let ind = (board.0 % TABLE_SIZE as u64) as usize;
+                let (b, play, _, score) = self.transposition[ind];
+
+                let board_eq = b == *board && self.pos.get_player() == play;
+
+                if board_eq {
+                    (score, board)
+                } else {
+                    (0, board)
+                }
+            }).collect::<Vec<_>>();
+
+        moves2.sort_unstable();
+        *moves = moves2.into_iter().map(|(_, b)| *b).collect();
+    }
+
+    fn quiesce(&mut self,
+               mut alpha: i32,
+               beta: i32) -> i32
+    {
+        if self.pos.board.game_end() {
+            return self.pos.eval() * 100;
+        }
+
+        let mut moves = Vec::new();
+
+        self.pos.gen_takes(&mut moves);
+
+        if moves.is_empty() {
+            return self.pos.eval();
+        }
+
+        let mut prev_best_score = i32::MIN;
+        let mut prev_best_ind = 0;
+
+        for m in moves.iter() {
+            let u = self.pos.do_move(*m);
+            let score = -self.quiesce(-beta, -alpha);
+            self.pos.undo_move(u);
+
+            if score >= beta {
+                return beta;
+            }
+            if score > alpha {
+                alpha = score;
+            }
+        }
+
+        alpha
+    }
+
     fn alphabeta(&mut self,
                  mut alpha: i32,
                  beta: i32,
@@ -33,12 +87,12 @@ impl<'a> Searcher<'a> {
         let mut ind = 0;
         let mut replace = false;
 
-        if self.pos.board.game_end(){
-            return self.pos.get_score() * 100;
+        if self.pos.board.game_end() {
+            return self.pos.eval() * 100;
         }
 
         if depth == 0 {
-            return self.pos.get_score();
+            return self.quiesce(alpha, beta);
         }
 
         if depth > 3 {
@@ -48,7 +102,7 @@ impl<'a> Searcher<'a> {
             let board_eq = self.pos.board == board && self.pos.get_player() == play;
 
             if depth2 >= depth && board_eq {
-                return self.pos.get_score() + score;
+                return self.pos.eval() + score;
             } else if depth > depth2 || !board_eq {
                 replace = true;
             }
@@ -61,6 +115,10 @@ impl<'a> Searcher<'a> {
 
         let mut prev_best_score = i32::MIN;
         let mut prev_best_ind = 0;
+
+        if depth > 3 {
+            self.sort_moves(&mut moves);
+        }
 
         for m in moves.iter() {
             let u = self.pos.do_move(*m);
@@ -82,27 +140,48 @@ impl<'a> Searcher<'a> {
         let out = if retbeta {beta} else {alpha};
 
         if replace {
-            self.transposition[ind] = (self.pos.board, self.pos.get_player(), depth, out - self.pos.get_score())
+            self.transposition[ind] = (self.pos.board, self.pos.get_player(), depth, out - self.pos.eval())
         }
 
         out
     }
 
-    fn best_move(&mut self, depth: usize, lastbest: Option<Board>)
+    fn best_move(&mut self, depth: usize, now: SystemTime, time: u128)
         -> (Option<Board>, i32)
     {
+        if self.pos.board.game_end() {
+            return (None, self.pos.eval() * 100);
+        }
+
+        let mut ind = 0;
+        let mut replace = false;
+
+        if depth > 3 {
+            ind = (self.pos.board.0 % TABLE_SIZE as u64) as usize;
+            let (board, play, depth2, score) = self.transposition[ind];
+
+            let board_eq = self.pos.board == board && self.pos.get_player() == play;
+
+            if depth > depth2 || !board_eq {
+                replace = true;
+            }
+        }
+
         let mut best_move = None;
         let mut best_score = -1000000;
         let mut moves = mem::replace(&mut self.moves[depth], Vec::new());
 
         self.pos.gen_moves(&mut moves);
 
-        if let Some(lastbest) = lastbest {
-            moves.retain(|m| *m != lastbest);
-            moves.push(lastbest);
+        if depth > 4 {
+            self.sort_moves(&mut moves);
         }
 
         for m in moves.iter().rev() {
+            if now.elapsed().unwrap().as_millis() >= time {
+                return (None, 0);
+            }
+
             let u = self.pos.do_move(*m);
             let score = -self.alphabeta(-1000000, -best_score, depth - 1);
 
@@ -112,6 +191,10 @@ impl<'a> Searcher<'a> {
                 best_move = Some(*m);
                 best_score = score;
             }
+        }
+
+        if replace {
+            self.transposition[ind] = (self.pos.board, self.pos.get_player(), depth, best_score - self.pos.eval())
         }
 
         moves.clear();
@@ -132,7 +215,7 @@ impl<'a> Searcher<'a> {
         let mut score = 0;
         let mut d = 1;
 
-        while now.elapsed().ok().unwrap().as_millis() < time {
+        while now.elapsed().unwrap().as_millis() < time {
             for i in 0..d + 1 {
                 if d >= self.moves.len() {
                     self.moves.push(Vec::new());
@@ -141,11 +224,10 @@ impl<'a> Searcher<'a> {
                 }
             }
 
-            print!("{}", d % 10);
-            std::io::stdout().flush();
-
-            match self.best_move(d, best) {
-                (None, _) => return (None, score),
+            match self.best_move(d, now, time) {
+                (None, _) => {
+                    return (best, score);
+                },
                 (m, s) => {
                     best = m;
                     score = s
@@ -153,7 +235,6 @@ impl<'a> Searcher<'a> {
             }
             d += 1;
         }
-        println!();
         (best, score)
     }
 }
