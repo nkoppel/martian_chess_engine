@@ -30,7 +30,7 @@ fn main() {
         println!("{}", pos);
 
         let mut searcher = Searcher::new(pos);
-        let (mov, score) = searcher.ab_search(100);
+        let (mov, score) = searcher.ab_search(10000);
 
         println!("{}", score);
 

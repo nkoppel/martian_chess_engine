@@ -145,22 +145,7 @@ impl<'a> Position<'a> {
     }
 
     pub fn get_move(&self) -> (usize, usize) {
-        let mut diff = self.prev.0 ^ self.board.0;
-        diff |= diff >> 32;
-
-        let mut locs = LocStack64(diff);
-        let loc1 = locs.next().unwrap();
-        let mut loc2 = 32;
-
-        if let Some(l) = locs.next() {
-            loc2 = l;
-        }
-
-        if self.board.0 & (SQUARE << loc1) == 0 {
-            (loc1, loc2)
-        } else {
-            (loc2, loc1)
-        }
+        self.board.get_move(&self.tables, &self.prev)
     }
 }
 

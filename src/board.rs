@@ -85,6 +85,37 @@ impl Board {
         vec.wrapping_sum()
     }
 
+    fn gen_drone_moves(tables: &Tables, sq: usize, occ: u32) -> u32 {
+        let (mask, magic, shift, table) = &tables.drone[sq];
+        let mut o = occ;
+
+        o &= *mask;
+        o = o.overflowing_mul(*magic).0;
+        o >>= *shift;
+
+        table[o as usize]
+    }
+
+    fn gen_queen_moves(tables: &Tables, sq: usize, occ: u32) -> u32 {
+        let (mask, magic, shift, table) = &tables.queen1[sq];
+        let mut o = occ;
+
+        o &= *mask;
+        o = o.overflowing_mul(*magic).0;
+        o >>= *shift;
+
+        let moves = table[o as usize];
+
+        let (mask, magic, shift, table) = &tables.queen2[sq];
+        o = occ;
+
+        o &= *mask;
+        o = o.overflowing_mul(*magic).0;
+        o >>= *shift;
+
+        moves | table[o as usize]
+    }
+
     fn do_moves(&self, sq: usize, moves: u32, boards: &mut Vec<Board>) {
         let mut piece = self.0;
         piece &= SQUARE << sq;
@@ -123,35 +154,12 @@ impl Board {
         }
 
         for sq in LocStack(player_board.drones()) {
-            let (mask, magic, shift, table) = &tables.drone[sq];
-            let mut o = occ;
-
-            o &= *mask;
-            o = o.overflowing_mul(*magic).0;
-            o >>= *shift;
-
-            let moves = table[o as usize];
+            let moves = Self::gen_drone_moves(&tables, sq, occ);
             self.do_moves(sq, moves, &mut out);
         }
 
         for sq in LocStack(player_board.queens()) {
-            let (mask, magic, shift, table) = &tables.queen1[sq];
-            let mut o = occ;
-
-            o &= *mask;
-            o = o.overflowing_mul(*magic).0;
-            o >>= *shift;
-
-            let mut moves = table[o as usize];
-
-            let (mask, magic, shift, table) = &tables.queen2[sq];
-            o = occ;
-
-            o &= *mask;
-            o = o.overflowing_mul(*magic).0;
-            o >>= *shift;
-
-            moves |= table[o as usize];
+            let moves = Self::gen_queen_moves(&tables, sq, occ);
             self.do_moves(sq, moves, &mut out);
         }
 
@@ -183,36 +191,12 @@ impl Board {
         }
 
         for sq in LocStack(player_board.drones()) {
-            let (mask, magic, shift, table) = &tables.drone[sq];
-            let mut o = occ;
-
-            o &= *mask;
-            o = o.overflowing_mul(*magic).0;
-            o >>= *shift;
-
-            let moves = table[o as usize] & other_occ;
+            let moves = Self::gen_drone_moves(&tables, sq, occ) & other_occ;
             self.do_moves(sq, moves, &mut out);
         }
 
         for sq in LocStack(player_board.queens()) {
-            let (mask, magic, shift, table) = &tables.queen1[sq];
-            let mut o = occ;
-
-            o &= *mask;
-            o = o.overflowing_mul(*magic).0;
-            o >>= *shift;
-
-            let mut moves = table[o as usize];
-
-            let (mask, magic, shift, table) = &tables.queen2[sq];
-            o = occ;
-
-            o &= *mask;
-            o = o.overflowing_mul(*magic).0;
-            o >>= *shift;
-
-            moves |= table[o as usize];
-            moves &= other_occ;
+            let moves = Self::gen_queen_moves(&tables, sq, occ) & other_occ;
             self.do_moves(sq, moves, &mut out);
         }
 
@@ -221,15 +205,38 @@ impl Board {
         out.retain(|b| b.0 & opp == self.0 & opp || b.0 & opp != prev.0 & opp);
     }
 
-    pub fn get_move(&self, mov: &Board) -> (usize, usize) {
+    pub fn get_move(&self, tables: &Tables, mov: &Board) -> (usize, usize) {
         let mut diff = self.0 ^ mov.0;
         diff |= diff >> 32;
 
         let mut locs = LocStack64(diff);
         let loc1 = locs.next().unwrap();
-        let loc2 = locs.next().unwrap();
+        let mut loc2 = 32;
 
-        if mov.0 & (SQUARE << loc1) == 0 {
+        if let Some(l) = locs.next() {
+            loc2 = l;
+        } else if self.queens() & (1 << loc1) != 0 {
+            let moves = Self::gen_queen_moves(&tables, loc1, self.occ());
+
+            if let Some(l2) = LocStack(moves & self.queens()).next() {
+                loc2 = l2;
+            }
+        } else if self.drones() & (1 << loc1) != 0 {
+            let moves = Self::gen_drone_moves(&tables, loc1, self.occ());
+
+            if let Some(l2) = LocStack(moves & self.drones()).next() {
+                loc2 = l2;
+            }
+        } else if self.pawns() & (1 << loc1) != 0 {
+            let player = if loc1 >= 16 {!PLAYER} else {PLAYER};
+            let moves = tables.pawn[loc1] & !(self.occ() & player as u32);
+
+            if let Some(l2) = LocStack(moves & self.pawns()).next() {
+                loc2 = l2;
+            }
+        }
+
+        if self.0 & (SQUARE << loc1) == 0 {
             (loc1, loc2)
         } else {
             (loc2, loc1)
@@ -276,7 +283,7 @@ use std::fmt;
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let player = true;
+        let player = false;
 
         let mut y_iter: Box<Iterator<Item = usize>> =
             if player {Box::new(0..8)} else {Box::new((0..8).rev())};

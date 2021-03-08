@@ -10,3 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 rand = "0.7"
 packed_simd = { version = "0.3.4", package = "packed_simd_2", features = ["into_bits"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+lazy_static = "1.4"
