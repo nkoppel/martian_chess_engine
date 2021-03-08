@@ -1,5 +1,4 @@
-use super::gen_tables::*;
-use std::mem;
+use crate::gen_tables::*;
 use packed_simd::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -48,7 +47,7 @@ impl Board {
     #[cfg(target_arch = "wasm32")]
     pub fn to_js(&self) -> JsBoard {
         unsafe {
-            let out = mem::transmute::<_, [i32; 2]>(self.0);
+            let out = std::mem::transmute::<_, [i32; 2]>(self.0);
 
             JsBoard {
                 upper: out[0],
@@ -60,7 +59,7 @@ impl Board {
     #[cfg(target_arch = "wasm32")]
     pub fn from_js(jsboard: JsBoard) -> Self {
         unsafe {
-            Board(mem::transmute::<_, u64>([jsboard.upper, jsboard.lower]))
+            Board(std::mem::transmute::<_, u64>([jsboard.upper, jsboard.lower]))
         }
     }
 
@@ -383,13 +382,13 @@ impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let player = false;
 
-        let mut y_iter: Box<Iterator<Item = usize>> =
+        let y_iter: Box<dyn Iterator<Item = usize>> =
             if player {Box::new(0..8)} else {Box::new((0..8).rev())};
 
         for y in y_iter {
             write!(f, "{}  ", y + 1)?;
 
-            let mut x_iter: Box<Iterator<Item = usize>> =
+            let x_iter: Box<dyn Iterator<Item = usize>> =
                 if player {Box::new(0..4)} else {Box::new((0..4).rev())};
 
             for x in x_iter {
@@ -422,6 +421,7 @@ impl fmt::Display for Board {
     }
 }
 
+#[allow(unused_imports)]
 mod tests {
     extern crate test;
     use test::Bencher;

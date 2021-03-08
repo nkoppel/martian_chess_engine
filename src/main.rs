@@ -6,7 +6,6 @@ mod position;
 mod search;
 
 use gen_tables::*;
-use board::*;
 use position::*;
 use search::*;
 

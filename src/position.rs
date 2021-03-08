@@ -1,5 +1,5 @@
-use super::gen_tables::*;
-use super::board::*;
+use crate::gen_tables::*;
+use crate::board::*;
 
 #[derive(Clone)]
 pub struct Position<'a> {
@@ -53,6 +53,7 @@ impl<'a> Position<'a> {
         out
     }
 
+    #[allow(dead_code)]
     pub fn from_fen(fen: &str, tables: &'a Tables) -> Self {
         let mut words = fen.split(" ");
         let mut out = Position::new(tables);
@@ -152,10 +153,12 @@ impl<'a> Position<'a> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_score(&self) -> i32 {
         self.negate_if_player(self.score)
     }
 
+    #[allow(dead_code)]
     pub fn player_value(&self) -> i32 {
         self.negate_if_player(self.board.player_value())
     }

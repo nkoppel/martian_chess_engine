@@ -73,6 +73,7 @@ pub fn print_move(mov: (usize, usize)) {
     println!("{}", stringify_move(mov));
 }
 
+#[allow(dead_code)]
 pub fn print_u32(board: u32) {
     println!("{:#08x}", board);
 
@@ -88,6 +89,7 @@ pub fn print_u32(board: u32) {
     }
 }
 
+#[allow(dead_code)]
 pub fn print_u64(board: u64) {
     println!("{:#016x}", board);
 
@@ -126,8 +128,8 @@ fn gen_att(sq: usize, dist: usize, deltas: &Vec<(isize, isize)>, board: u32, fie
 {
     let startx = (sq % 4) as isize;
     let starty = (sq / 4) as isize;
-    let mut x = startx;
-    let mut y = starty;
+    let mut x;
+    let mut y;
 
     let mut i;
     let mut out = 0;
@@ -218,7 +220,6 @@ fn test_magic(table: &mut Vec<u32>,
               magic: u32)
     -> bool
 {
-    let size = 1 << bits;
     let mut nchanged = 0;
 
     for (occ, att) in occ_att {

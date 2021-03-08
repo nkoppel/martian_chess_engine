@@ -1,12 +1,9 @@
-use super::gen_tables::*;
-use super::board::*;
-use super::position::*;
+use crate::board::*;
+use crate::position::*;
 
-use std::collections::HashMap;
 use std::mem;
 
-use std::io::Write;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
 const TABLE_SIZE: usize = 1_048_573;
 
@@ -60,9 +57,6 @@ impl<'a> Searcher<'a> {
             return self.pos.eval();
         }
 
-        let mut prev_best_score = i32::MIN;
-        let mut prev_best_ind = 0;
-
         for m in moves.iter() {
             let u = self.pos.do_move(*m);
             let score = -self.quiesce(-beta, -alpha);
@@ -113,9 +107,6 @@ impl<'a> Searcher<'a> {
 
         self.pos.gen_moves(&mut moves);
 
-        let mut prev_best_score = i32::MIN;
-        let mut prev_best_ind = 0;
-
         if depth > 3 {
             self.sort_moves(&mut moves);
         }
@@ -158,7 +149,7 @@ impl<'a> Searcher<'a> {
 
         if depth > 3 {
             ind = (self.pos.board.0 % TABLE_SIZE as u64) as usize;
-            let (board, play, depth2, score) = self.transposition[ind];
+            let (board, play, depth2, _) = self.transposition[ind];
 
             let board_eq = self.pos.board == board && self.pos.get_player() == play;
 
@@ -216,7 +207,7 @@ impl<'a> Searcher<'a> {
         let mut d = 1;
 
         while now.elapsed().unwrap().as_millis() < time {
-            for i in 0..d + 1 {
+            for _ in 0..d + 1 {
                 if d >= self.moves.len() {
                     self.moves.push(Vec::new());
                 } else {
