@@ -50,8 +50,8 @@ impl Board {
             let out = std::mem::transmute::<_, [i32; 2]>(self.0);
 
             JsBoard {
-                upper: out[0],
-                lower: out[1]
+                upper: out[1],
+                lower: out[0]
             }
         }
     }
@@ -59,7 +59,7 @@ impl Board {
     #[cfg(target_arch = "wasm32")]
     pub fn from_js(jsboard: JsBoard) -> Self {
         unsafe {
-            Board(std::mem::transmute::<_, u64>([jsboard.upper, jsboard.lower]))
+            Board(std::mem::transmute::<_, u64>([jsboard.lower, jsboard.upper]))
         }
     }
 
@@ -257,7 +257,6 @@ impl Board {
 
     pub fn gen_takes(&self,
                      player: bool,
-                     prev: Board,
                      tables: &Tables,
                      mut out: &mut Vec<Board>)
     {
@@ -267,12 +266,11 @@ impl Board {
         let player_board = Board(self.0 & player);
         let other_board = Board(self.0 & !player);
 
-        let player_occ = player_board.occ();
         let other_occ = other_board.occ();
         let occ = self.occ();
 
         for sq in LocStack(player_board.pawns()) {
-            let moves = tables.pawn[sq] & !player_occ & other_occ;
+            let moves = tables.pawn[sq] & other_occ;
 
             self.do_moves(sq, moves, &mut out);
         }
@@ -286,10 +284,50 @@ impl Board {
             let moves = Self::gen_queen_moves(&tables, sq, occ) & other_occ;
             self.do_moves(sq, moves, &mut out);
         }
+    }
 
-        let opp = !player;
+    pub fn gen_piece_moves(&self, prev: Board, tables: &Tables, sq: usize)
+        -> u32
+    {
+        let player = if sq >= 16 {!PLAYER} else {PLAYER};
+        let mut moves = Vec::new();
 
-        out.retain(|b| b.0 & opp == self.0 & opp || b.0 & opp != prev.0 & opp);
+        let pawns  = self.pawns();
+        let drones = self.drones();
+        let queens = self.queens();
+
+        self.gen_moves(sq >= 16, prev, tables, &mut moves);
+
+        let mut out = 0;
+
+        for mov in moves {
+            let mut diff = self.0 ^ mov.0;
+            diff |= diff >> 32;
+            let diff = diff as u32;
+
+            if diff & 1 << sq != 0 {
+                out |= diff;
+
+                if queens & 1 << sq != 0 {
+                    let moves = Self::gen_queen_moves(tables, sq, self.occ());
+
+                    out |= moves & queens;
+                } else if drones & 1 << sq != 0 {
+                    let moves = Self::gen_drone_moves(tables, sq, self.occ());
+
+                    out |= moves & drones;
+                } else if pawns & 1 << sq != 0 {
+                    let moves = tables.pawn[sq] &
+                        !(self.occ() & player as u32);
+
+                    out |= moves & pawns;
+                } else {
+                    out = 0;
+                }
+            }
+        }
+        out &= !(1 << sq);
+        out
     }
 
     pub fn get_move(&self, tables: &Tables, mov: &Board) -> (usize, usize) {
@@ -302,19 +340,19 @@ impl Board {
 
         if let Some(l) = locs.next() {
             loc2 = l;
-        } else if self.queens() & (1 << loc1) != 0 {
+        } else if self.queens() & 1 << loc1 != 0 {
             let moves = Self::gen_queen_moves(&tables, loc1, self.occ());
 
             if let Some(l2) = LocStack(moves & self.queens()).next() {
                 loc2 = l2;
             }
-        } else if self.drones() & (1 << loc1) != 0 {
+        } else if self.drones() & 1 << loc1 != 0 {
             let moves = Self::gen_drone_moves(&tables, loc1, self.occ());
 
             if let Some(l2) = LocStack(moves & self.drones()).next() {
                 loc2 = l2;
             }
-        } else if self.pawns() & (1 << loc1) != 0 {
+        } else if self.pawns() & 1 << loc1 != 0 {
             let player = if loc1 >= 16 {!PLAYER} else {PLAYER};
             let moves = tables.pawn[loc1] & !(self.occ() & player as u32);
 
@@ -323,7 +361,7 @@ impl Board {
             }
         }
 
-        if self.0 & (SQUARE << loc1) == 0 {
+        if self.0 & SQUARE << loc1 == 0 {
             (loc1, loc2)
         } else {
             (loc2, loc1)

@@ -145,6 +145,20 @@ impl<'a> Position<'a> {
         true
     }
 
+    pub fn do_num_move(&mut self, sq1: usize, sq2: usize) -> bool {
+        let mut moves = Vec::new();
+        self.gen_moves(&mut moves);
+
+        let mov = self.board.do_move(sq1, sq2);
+
+        if !moves.contains(&mov) {
+            return false;
+        }
+
+        self.do_move(mov);
+        true
+    }
+
     fn negate_if_player(&self, i: i32) -> i32 {
         if self.player {
             -i
@@ -178,7 +192,15 @@ impl<'a> Position<'a> {
     }
 
     pub fn gen_takes(&self, out: &mut Vec<Board>) {
-        self.board.gen_takes(self.player, self.prev, self.tables, out)
+        self.board.gen_takes(self.player, self.tables, out)
+    }
+
+    pub fn gen_piece_moves(&self, sq: usize) -> u32 {
+        if (sq >= 16) == self.player {
+            self.board.gen_piece_moves(self.prev, self.tables, sq)
+        } else {
+            0
+        }
     }
 
     pub fn get_move(&self) -> (usize, usize) {

@@ -17,7 +17,7 @@ impl Api {
     fn new() -> Self {
         Self {
             position: Position::new(&TABLES),
-            best_move: Board::new(),
+            best_move: Board::empty(),
             best_score: 0
         }
     }
@@ -80,6 +80,14 @@ pub fn do_move(mov: JsBoard) {
 }
 
 #[wasm_bindgen]
+pub fn do_num_move(sq1: usize, sq2: usize) {
+    let mut tmp = API.clone();
+    let api = unsafe{Arc::get_mut_unchecked(&mut tmp)};
+
+    api.position.do_num_move(sq1, sq2);
+}
+
+#[wasm_bindgen]
 pub fn do_string_move(mov: String) -> bool {
     let mut tmp = API.clone();
     let api = unsafe{Arc::get_mut_unchecked(&mut tmp)};
@@ -93,6 +101,14 @@ pub fn get_string_move() -> String {
     let api = unsafe{Arc::get_mut_unchecked(&mut tmp)};
 
     stringify_move(api.position.get_move())
+}
+
+#[wasm_bindgen]
+pub fn get_piece_moves(sq: usize) -> i32 {
+    let mut tmp = API.clone();
+    let api = unsafe{Arc::get_mut_unchecked(&mut tmp)};
+
+    api.position.gen_piece_moves(sq) as i32
 }
 
 #[wasm_bindgen]

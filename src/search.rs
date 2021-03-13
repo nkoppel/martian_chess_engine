@@ -3,7 +3,11 @@ use crate::position::*;
 
 use std::mem;
 
-use std::time::SystemTime;
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::*;
+
+#[cfg(target_arch = "wasm32")]
+use wasm_timer::*;
 
 const TABLE_SIZE: usize = 1_048_573;
 
@@ -137,7 +141,7 @@ impl<'a> Searcher<'a> {
         out
     }
 
-    fn best_move(&mut self, depth: usize, now: SystemTime, time: u128)
+    fn best_move(&mut self, depth: usize, now: Instant, time: u128)
         -> (Option<Board>, i32)
     {
         if self.pos.board.game_end() {
@@ -169,7 +173,7 @@ impl<'a> Searcher<'a> {
         }
 
         for m in moves.iter().rev() {
-            if now.elapsed().unwrap().as_millis() >= time {
+            if now.elapsed().as_millis() >= time {
                 return (None, 0);
             }
 
@@ -200,13 +204,13 @@ impl<'a> Searcher<'a> {
 
     pub fn ab_search(&mut self, time: usize) -> (Option<Board>, i32) {
         let time = time as u128;
-        let now = SystemTime::now();
+        let now = Instant::now();
 
         let mut best = None;
         let mut score = 0;
         let mut d = 1;
 
-        while now.elapsed().unwrap().as_millis() < time {
+        while now.elapsed().as_millis() < time {
             for _ in 0..d + 1 {
                 if d >= self.moves.len() {
                     self.moves.push(Vec::new());
@@ -226,6 +230,7 @@ impl<'a> Searcher<'a> {
             }
             d += 1;
         }
+
         (best, score)
     }
 }

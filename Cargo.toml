@@ -8,9 +8,11 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-rand = "0.7"
+getrandom = { version = "0.2", features = ["js"] }
+rand = "0.8"
 packed_simd = { version = "0.3.4", package = "packed_simd_2", features = ["into_bits"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
 lazy_static = "1.4"
+wasm-timer = "0.2"
