@@ -1,6 +1,8 @@
 var board = [].fill.call({length: 32}, 0);
-var log_pieces = ["_", "^", "*", "A"];
-var render_pieces = [" ", "^", "*", "A"];
+var pieces = ["_", "^", "*", "A"];
+
+var render_images = ["", "pyramid_yellow.png", "pyramid_blue.png", "pyramid_red.png"];
+var render_sizes = [0, 60, 70, 80];
 
 function decode_board(rsboard) {
     board = [].fill.call({length: 32}, 0);
@@ -29,7 +31,7 @@ function log_board() {
 
     for (var y = 7; y >= 0; y--) {
         for (var x = 3; x >= 0; x--) {
-            out += log_pieces[board[x + y * 4]] + " ";
+            out += pieces[board[x + y * 4]] + " ";
         }
 
         out += "\n"
@@ -43,9 +45,11 @@ function render_board() {
     var width = 50;
 
     for (var y = 7; y >= 0; y--) {
-        out += '<div class="row">';
+        out += '<div class="row row' + y + '">';
 
         for (var x = 3; x >= 0; x--) {
+            var piece = board[x + y * 4];
+
             out += '<div class="square'
 
             out += ' square' + (x + y * 4)
@@ -56,18 +60,32 @@ function render_board() {
                 out += ' white"'
             }
 
-            out +=
-                ' style="width:' + width + 'px;' + 
-                'height:'        + width + 'px;' +
-                'line-height:'   + width + 'px">'
+            out += ' style="width:' + width + 'px;height:'
 
-            out += render_pieces[board[x + y * 4]] + "</div>"
+            if (y == 3 || y == 4) {
+                out += width - 2
+            } else {
+                out += width
+            }
+
+            out += 'px">';
+
+            if (piece !== 0) {
+                out +=
+                    '<img src="assets/' + render_images[piece] +
+                     '" width="'  + render_sizes[piece] +
+                    '%" height="' + render_sizes[piece] +
+                    '%">'
+            }
+
+            out += "</div>"
         }
 
         out += '</div>';
     }
 
     document.getElementById("board").innerHTML = out;
+    set_square_click_events();
 }
 
 function render_engine_board() {
@@ -87,10 +105,16 @@ function show_moves(moves) {
     }
 }
 
+function do_engine_move(time) {
+    engine.search(time);
+    engine.do_move(engine.get_best_move());
+    render_engine_board();
+}
+
 var clickedSquare = -1;
 
 function click_square(square) {
-    if (clickedSquare < 0) {
+    if (clickedSquare === -1) {
         var moves = engine.get_piece_moves(square);
 
         show_moves(moves);
@@ -98,11 +122,18 @@ function click_square(square) {
         if (moves !== 0) {
             clickedSquare = square;
         }
-    } else {
+    } else if (clickedSquare >= 0) {
         show_moves(0);
+
         engine.do_num_move(clickedSquare, square);
         render_engine_board();
-        clickedSquare = -1;
+
+        clickedSquare = -2;
+
+        setTimeout(() => {
+            do_engine_move(1000);
+            clickedSquare = -1;
+        }, 10);
     }
 }
 
@@ -113,10 +144,9 @@ function set_square_click_events() {
     }
 }
 
-function init() {
-    engine.search(100);
-    decode_board(engine.get_best_move());
-    render_board()
+function run() {
+    render_engine_board();
+    set_square_click_events();
 }
 
-setTimeout(init, 100);
+setTimeout(run, 100);
