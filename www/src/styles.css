@@ -2,9 +2,15 @@ body {
     background-color: #323234;
 }
 
+.score {
+    color: white;
+    display: block;
+    margin: 10px
+}
+
 #board {
     box-sizing: content-box;
-    width: 200px;
+    width: 400px;
 }
 
 .row {
@@ -23,6 +29,14 @@ body {
 .square img {
     position: absolute;
     bottom: 10%
+}
+
+.white-highlight {
+    background-color: #67BCF7;
+}
+
+.black-highlight {
+    background-color: #2987C9;
 }
 
 /* modified from https://github.com/oakmac/chessboardjs */

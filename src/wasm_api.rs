@@ -10,7 +10,9 @@ use std::sync::Arc;
 struct Api {
     position: Position<'static>,
     best_move: Board,
-    best_score: i32
+    best_score: i32,
+    p1_score: i32,
+    p2_score: i32,
 }
 
 impl Api {
@@ -18,7 +20,20 @@ impl Api {
         Self {
             position: Position::new(&TABLES),
             best_move: Board::empty(),
-            best_score: 0
+            best_score: 0,
+            p1_score: 0,
+            p2_score: 0,
+        }
+    }
+
+    pub fn update_scores(&mut self) {
+        let prev = self.p1_score - self.p2_score;
+        let delta = prev - self.position.get_score();
+
+        if delta > 0 {
+            self.p1_score += delta;
+        } else {
+            self.p2_score += delta;
         }
     }
 }
@@ -26,6 +41,14 @@ impl Api {
 lazy_static! {
     static ref TABLES: Arc<Tables> = Arc::new(Tables::new());
     static ref API: Arc<Api> = Arc::new(Api::new());
+}
+
+#[wasm_bindgen]
+pub fn reset() {
+    let mut tmp = API.clone();
+    let api = unsafe{Arc::get_mut_unchecked(&mut tmp)};
+
+    *api = Api::new()
 }
 
 #[wasm_bindgen]
@@ -61,6 +84,22 @@ pub fn get_best_score() -> i32 {
 }
 
 #[wasm_bindgen]
+pub fn get_p1_score() -> i32 {
+    let mut tmp = API.clone();
+    let api = unsafe{Arc::get_mut_unchecked(&mut tmp)};
+
+    api.p1_score
+}
+
+#[wasm_bindgen]
+pub fn get_p2_score() -> i32 {
+    let mut tmp = API.clone();
+    let api = unsafe{Arc::get_mut_unchecked(&mut tmp)};
+
+    api.p2_score
+}
+
+#[wasm_bindgen]
 pub fn move_is_valid(mov: JsBoard) -> bool {
     let mut tmp = API.clone();
     let api = unsafe{Arc::get_mut_unchecked(&mut tmp)};
@@ -77,14 +116,18 @@ pub fn do_move(mov: JsBoard) {
     let api = unsafe{Arc::get_mut_unchecked(&mut tmp)};
 
     api.position.do_move(Board::from_js(mov));
+    api.update_scores();
 }
 
 #[wasm_bindgen]
-pub fn do_num_move(sq1: usize, sq2: usize) {
+pub fn do_num_move(sq1: usize, sq2: usize) -> bool {
     let mut tmp = API.clone();
     let api = unsafe{Arc::get_mut_unchecked(&mut tmp)};
 
-    api.position.do_num_move(sq1, sq2);
+    let out = api.position.do_num_move(sq1, sq2);
+    api.update_scores();
+
+    out
 }
 
 #[wasm_bindgen]
@@ -92,7 +135,10 @@ pub fn do_string_move(mov: String) -> bool {
     let mut tmp = API.clone();
     let api = unsafe{Arc::get_mut_unchecked(&mut tmp)};
 
-    api.position.do_string_move(&mov)
+    let out = api.position.do_string_move(&mov);
+    api.update_scores();
+
+    out
 }
 
 #[wasm_bindgen]

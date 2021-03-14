@@ -4,6 +4,8 @@ var pieces = ["_", "^", "*", "A"];
 var render_images = ["", "pyramid_yellow.png", "pyramid_blue.png", "pyramid_red.png"];
 var render_sizes = [0, 60, 70, 80];
 
+var square_width = 60
+
 function decode_board(rsboard) {
     board = [].fill.call({length: 32}, 0);
 
@@ -42,7 +44,10 @@ function log_board() {
 
 function render_board() {
     var out = "";
-    var width = 50;
+
+    $('#board')
+        .css('width' , (square_width * 4) + 'px')
+        .css('height', (square_width * 8) + 'px');
 
     for (var y = 7; y >= 0; y--) {
         out += '<div class="row row' + y + '">';
@@ -60,12 +65,12 @@ function render_board() {
                 out += ' white"'
             }
 
-            out += ' style="width:' + width + 'px;height:'
+            out += ' style="width:' + square_width + 'px;height:'
 
             if (y == 3 || y == 4) {
-                out += width - 2
+                out += square_width - 2
             } else {
-                out += width
+                out += square_width
             }
 
             out += 'px">';
@@ -84,8 +89,11 @@ function render_board() {
         out += '</div>';
     }
 
-    document.getElementById("board").innerHTML = out;
+    $('#board').html(out);
     set_square_click_events();
+
+    $('#p1_score').html('Player 1 points: ' + engine.get_p1_score());
+    $('#p2_score').html('Player 2 points: ' + engine.get_p2_score());
 }
 
 function render_engine_board() {
@@ -95,10 +103,20 @@ function render_engine_board() {
 
 function show_moves(moves) {
     for (var i = 0; i < 32; i++) {
+        var square = $('.square' + i);
+
         if (moves & 1 !== 0) {
-            document.getElementsByClassName('square' + i)[0].style.backgroundColor = 'red';
+            if ((i % 4 + Math.floor(i / 4)) % 2 == 0) {
+                square.removeClass('black').addClass('black-highlight')
+            } else {
+                square.removeClass('white').addClass('white-highlight')
+            }
         } else {
-            document.getElementsByClassName('square' + i)[0].style.backgroundColor = '';
+            if ((i % 4 + Math.floor(i / 4)) % 2 == 0) {
+                square.removeClass('black-highlight').addClass('black')
+            } else {
+                square.removeClass('white-highlight').addClass('white')
+            }
         }
 
         moves >>>= 1;
@@ -125,22 +143,25 @@ function click_square(square) {
     } else if (clickedSquare >= 0) {
         show_moves(0);
 
-        engine.do_num_move(clickedSquare, square);
-        render_engine_board();
+        if (engine.do_num_move(clickedSquare, square)) {
+            render_engine_board();
 
-        clickedSquare = -2;
+            clickedSquare = -2;
 
-        setTimeout(() => {
-            do_engine_move(1000);
+            setTimeout(() => {
+                do_engine_move(1000);
+                clickedSquare = -1;
+            }, 10);
+        } else {
             clickedSquare = -1;
-        }, 10);
+            click_square(square);
+        }
     }
 }
 
 function set_square_click_events() {
     for (var i = 0; i < 32; i++) {
-        document.getElementsByClassName('square' + i)[0].onclick =
-            eval('() => click_square(' + i + ')')
+        $('.square' + i).click(eval('() => click_square(' + i + ')'))
     }
 }
 
