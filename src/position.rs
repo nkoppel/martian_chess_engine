@@ -169,7 +169,7 @@ impl<'a> Position<'a> {
 
     #[allow(dead_code)]
     pub fn get_score(&self) -> i32 {
-        self.negate_if_player(self.score)
+        self.score
     }
 
     #[allow(dead_code)]

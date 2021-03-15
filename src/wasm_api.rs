@@ -26,12 +26,11 @@ impl Api {
         }
     }
 
-    pub fn update_scores(&mut self) {
-        let prev = self.p1_score - self.p2_score;
-        let delta = prev - self.position.get_score();
+    fn update_scores(&mut self) {
+        let delta = (self.p1_score - self.p2_score) - self.position.get_score();
 
-        if delta > 0 {
-            self.p1_score += delta;
+        if self.position.get_player() {
+            self.p1_score -= delta;
         } else {
             self.p2_score += delta;
         }
