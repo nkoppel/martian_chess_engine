@@ -42,7 +42,7 @@ jobs:
     - name: Build webpage
       run:
         sh www/build.sh;
-        rm -r www/build.sh www/src
+        rm -r www/build.sh www/src www/martian-engine/.gitignore
 
     - name: Push build in www directory to nkoppel.github.io
       uses: nkoppel/push-files-to-another-repository@master
