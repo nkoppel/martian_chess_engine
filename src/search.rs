@@ -27,22 +27,18 @@ impl<'a> Searcher<'a> {
     }
 
     fn sort_moves(&self, moves: &mut Vec<Board>) {
-        let mut moves2 =
-            moves.iter().map(|board| {
-                let ind = (board.0 % TABLE_SIZE as u64) as usize;
-                let (b, play, _, score) = self.transposition[ind];
+        moves.sort_by_cached_key(|board| {
+            let ind = (board.0 % TABLE_SIZE as u64) as usize;
+            let (b, play, _, score) = self.transposition[ind];
 
-                let board_eq = b == *board && self.pos.get_player() == play;
+            let board_eq = b == *board && self.pos.get_player() == play;
 
-                if board_eq {
-                    (score, board)
-                } else {
-                    (0, board)
-                }
-            }).collect::<Vec<_>>();
-
-        moves2.sort_unstable();
-        *moves = moves2.into_iter().map(|(_, b)| *b).collect();
+            if board_eq {
+                score
+            } else {
+                0
+            }
+        });
     }
 
     fn quiesce(&mut self,
@@ -82,7 +78,6 @@ impl<'a> Searcher<'a> {
                  beta: i32,
                  depth: usize) -> i32
     {
-        let mut ind = 0;
         let mut replace = false;
 
         if self.pos.board.game_end() {
@@ -93,17 +88,15 @@ impl<'a> Searcher<'a> {
             return self.quiesce(alpha, beta);
         }
 
-        if depth > 3 {
-            ind = (self.pos.board.0 % TABLE_SIZE as u64) as usize;
-            let (board, play, depth2, score) = self.transposition[ind];
+        let ind = (self.pos.board.0 % TABLE_SIZE as u64) as usize;
+        let (board, play, depth2, score) = self.transposition[ind];
 
-            let board_eq = self.pos.board == board && self.pos.get_player() == play;
+        let board_eq = self.pos.board == board && self.pos.get_player() == play;
 
-            if depth2 >= depth && board_eq {
-                return self.pos.eval() + score;
-            } else if depth > depth2 || !board_eq {
-                replace = true;
-            }
+        if depth2 >= depth && board_eq {
+            return self.pos.eval() + score;
+        } else if depth > depth2 || !board_eq {
+            replace = true;
         }
 
         let mut moves = mem::replace(&mut self.moves[depth], Vec::new());
@@ -111,9 +104,7 @@ impl<'a> Searcher<'a> {
 
         self.pos.gen_moves(&mut moves);
 
-        if depth > 3 {
-            self.sort_moves(&mut moves);
-        }
+        self.sort_moves(&mut moves);
 
         for m in moves.iter() {
             let u = self.pos.do_move(*m);
