@@ -31,7 +31,7 @@ impl<'a> Searcher<'a> {
             let ind = (board.0 % TABLE_SIZE as u64) as usize;
             let (b, play, _, score) = self.transposition[ind];
 
-            let board_eq = b == *board && self.pos.get_player() == play;
+            let board_eq = b == *board && self.pos.get_player() != play;
 
             if board_eq {
                 score
@@ -57,8 +57,18 @@ impl<'a> Searcher<'a> {
             return self.pos.eval();
         }
 
-        for m in moves.iter() {
-            let u = self.pos.do_move(*m);
+        // a player that gains nothing from taking won't take
+        let null_score = self.pos.eval();
+
+        if null_score >= beta {
+            return beta;
+        }
+        if null_score > alpha {
+            alpha = null_score;
+        }
+
+        for m in moves.into_iter() {
+            let u = self.pos.do_move(m);
             let score = -self.quiesce(-beta, -alpha);
             self.pos.undo_move(u);
 
@@ -78,8 +88,6 @@ impl<'a> Searcher<'a> {
                  beta: i32,
                  depth: usize) -> i32
     {
-        let mut replace = false;
-
         if self.pos.board.game_end() {
             return self.pos.eval() * 100;
         }
@@ -95,15 +103,12 @@ impl<'a> Searcher<'a> {
 
         if depth2 >= depth && board_eq {
             return self.pos.eval() + score;
-        } else if depth > depth2 || !board_eq {
-            replace = true;
         }
 
         let mut moves = mem::replace(&mut self.moves[depth], Vec::new());
         let mut retbeta = false;
 
         self.pos.gen_moves(&mut moves);
-
         self.sort_moves(&mut moves);
 
         for m in moves.iter() {
@@ -125,7 +130,7 @@ impl<'a> Searcher<'a> {
 
         let out = if retbeta {beta} else {alpha};
 
-        if replace {
+        if depth > depth2 || !board_eq {
             self.transposition[ind] = (self.pos.board, self.pos.get_player(), depth, out - self.pos.eval())
         }
 
@@ -139,29 +144,17 @@ impl<'a> Searcher<'a> {
             return (None, self.pos.eval() * 100);
         }
 
-        let mut ind = 0;
-        let mut replace = false;
+        let ind = (self.pos.board.0 % TABLE_SIZE as u64) as usize;
+        let (board, play, depth2, _) = self.transposition[ind];
 
-        if depth > 3 {
-            ind = (self.pos.board.0 % TABLE_SIZE as u64) as usize;
-            let (board, play, depth2, _) = self.transposition[ind];
-
-            let board_eq = self.pos.board == board && self.pos.get_player() == play;
-
-            if depth > depth2 || !board_eq {
-                replace = true;
-            }
-        }
+        let board_eq = self.pos.board == board && self.pos.get_player() == play;
 
         let mut best_move = None;
         let mut best_score = -1000000;
         let mut moves = mem::replace(&mut self.moves[depth], Vec::new());
 
         self.pos.gen_moves(&mut moves);
-
-        if depth > 4 {
-            self.sort_moves(&mut moves);
-        }
+        self.sort_moves(&mut moves);
 
         for m in moves.iter().rev() {
             if now.elapsed().as_millis() >= time {
@@ -179,7 +172,7 @@ impl<'a> Searcher<'a> {
             }
         }
 
-        if replace {
+        if depth > depth2 || !board_eq {
             self.transposition[ind] = (self.pos.board, self.pos.get_player(), depth, best_score - self.pos.eval())
         }
 
@@ -223,5 +216,41 @@ impl<'a> Searcher<'a> {
         }
 
         (best, score)
+    }
+}
+
+#[allow(unused_imports)]
+mod tests {
+    extern crate test;
+    use test::Bencher;
+    use crate::gen_tables::*;
+    use super::*;
+
+    #[bench]
+    fn b_alphabeta(b: &mut Bencher) {
+        let tables = Tables::new();
+        let position = Position::new(&tables);
+
+        b.iter(|| {
+            let mut searcher = Searcher::new(position.clone());
+            searcher.moves = vec![Vec::new(); 7];
+            searcher.alphabeta(-1000000, 1000000, 5)
+        });
+    }
+
+    #[bench]
+    fn b_iterative_deepening(b: &mut Bencher) {
+        let tables = Tables::new();
+        let position = Position::new(&tables);
+
+        b.iter(|| {
+            let mut searcher = Searcher::new(position.clone());
+            searcher.moves = vec![Vec::new(); 7];
+
+            for d in 0..5 {
+                searcher.alphabeta(-1000000, 1000000, d);
+            }
+            searcher.alphabeta(-1000000, 1000000, 5)
+        });
     }
 }

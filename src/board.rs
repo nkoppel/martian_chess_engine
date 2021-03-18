@@ -500,7 +500,7 @@ mod tests {
         let board = Board(0xea9020804b100000);
         let tables = Tables::new();
 
-        b.iter(|| {test::black_box(&board).gen_takes(false, Board(0), &tables, &mut moves); moves.clone()});
+        b.iter(|| {test::black_box(&board).gen_takes(false, &tables, &mut moves); moves.clone()});
     }
 
     #[test]
