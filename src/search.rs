@@ -57,16 +57,6 @@ impl<'a> Searcher<'a> {
             return self.pos.eval();
         }
 
-        // a player that gains nothing from taking won't take
-        let null_score = self.pos.eval();
-
-        if null_score >= beta {
-            return beta;
-        }
-        if null_score > alpha {
-            alpha = null_score;
-        }
-
         for m in moves.into_iter() {
             let u = self.pos.do_move(m);
             let score = -self.quiesce(-beta, -alpha);
