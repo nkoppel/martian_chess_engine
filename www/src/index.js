@@ -149,7 +149,7 @@ function click_square(square) {
             clickedSquare = -2;
 
             setTimeout(() => {
-                do_engine_move(10000);
+                do_engine_move(1000);
                 clickedSquare = -1;
             }, 10);
         } else {
