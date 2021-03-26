@@ -22,6 +22,7 @@ pub struct JsPosition {
     pub score: i32
 }
 
+#[allow(dead_code)]
 impl<'a> Position<'a> {
     pub fn new(tables: &'a Tables) -> Self {
         Self {
@@ -204,7 +205,7 @@ impl<'a> Position<'a> {
     }
 
     pub fn get_move(&self) -> (usize, usize) {
-        self.board.get_move(&self.tables, &self.prev)
+        self.prev.get_move(&self.tables, &self.board)
     }
 }
 

@@ -20,6 +20,7 @@ const PLAYER: u64 = 0x0000ffff0000ffff;
 
 const START: &str = "qqd1/qdp1/dpp1/4/4/1ppd/1pdq/1dqq";
 
+#[allow(dead_code)]
 impl Board {
     pub fn from_desc(desc: &str) -> Self {
         let mut x = 3;
@@ -334,7 +335,7 @@ impl Board {
         let mut diff = self.0 ^ mov.0;
         diff |= diff >> 32;
 
-        let mut locs = LocStack64(diff);
+        let mut locs = LocStack(diff as u32);
         let loc1 = locs.next().unwrap();
         let mut loc2 = 32;
 
@@ -361,7 +362,7 @@ impl Board {
             }
         }
 
-        if self.0 & SQUARE << loc1 == 0 {
+        if mov.0 & SQUARE << loc1 == 0 {
             (loc1, loc2)
         } else {
             (loc2, loc1)

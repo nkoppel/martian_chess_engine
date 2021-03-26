@@ -41,10 +41,7 @@ impl<'a> Searcher<'a> {
         });
     }
 
-    fn quiesce(&mut self,
-               mut alpha: i32,
-               beta: i32) -> i32
-    {
+    fn quiesce(&mut self, mut alpha: i32, beta: i32) -> i32 {
         if self.pos.board.game_end() {
             return self.pos.eval() * 100;
         }
@@ -55,6 +52,16 @@ impl<'a> Searcher<'a> {
 
         if moves.is_empty() {
             return self.pos.eval();
+        }
+
+        // a player that gains nothing from taking won't take
+        let null_score = self.pos.eval();
+
+        if null_score >= beta {
+            return beta;
+        }
+        if null_score > alpha {
+            alpha = null_score;
         }
 
         for m in moves.into_iter() {
@@ -73,11 +80,7 @@ impl<'a> Searcher<'a> {
         alpha
     }
 
-    fn alphabeta(&mut self,
-                 mut alpha: i32,
-                 beta: i32,
-                 depth: usize) -> i32
-    {
+    fn alphabeta(&mut self, mut alpha: i32, beta: i32, depth: usize) -> i32 {
         if self.pos.board.game_end() {
             return self.pos.eval() * 100;
         }
@@ -96,7 +99,6 @@ impl<'a> Searcher<'a> {
         }
 
         let mut moves = mem::replace(&mut self.moves[depth], Vec::new());
-        let mut retbeta = false;
 
         self.pos.gen_moves(&mut moves);
         self.sort_moves(&mut moves);
@@ -107,8 +109,9 @@ impl<'a> Searcher<'a> {
             self.pos.undo_move(u);
 
             if score >= beta {
-                retbeta = true;
-                break;
+                moves.clear();
+                self.moves[depth] = moves;
+                return beta;
             }
             if score > alpha {
                 alpha = score;
@@ -118,13 +121,11 @@ impl<'a> Searcher<'a> {
         moves.clear();
         self.moves[depth] = moves;
 
-        let out = if retbeta {beta} else {alpha};
-
         if depth > depth2 || !board_eq {
-            self.transposition[ind] = (self.pos.board, self.pos.get_player(), depth, out - self.pos.eval())
+            self.transposition[ind] = (self.pos.board, self.pos.get_player(), depth, alpha - self.pos.eval())
         }
 
-        out
+        alpha
     }
 
     fn best_move(&mut self, depth: usize, now: Instant, time: u128)
