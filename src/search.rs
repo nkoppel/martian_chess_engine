@@ -61,7 +61,7 @@ impl<'a> Searcher<'a> {
         let null_score = self.pos.eval();
 
         if null_score >= beta {
-            return beta;
+            return beta + 1;
         }
         if null_score > alpha {
             alpha = null_score;
@@ -73,7 +73,7 @@ impl<'a> Searcher<'a> {
             self.pos.undo_move(u);
 
             if score >= beta {
-                return beta;
+                return beta + 1;
             }
             if score > alpha {
                 alpha = score;
@@ -114,7 +114,7 @@ impl<'a> Searcher<'a> {
             if score >= beta {
                 moves.clear();
                 self.moves[depth] = moves;
-                return beta;
+                return beta + 1;
             }
             if score > alpha {
                 alpha = score;
