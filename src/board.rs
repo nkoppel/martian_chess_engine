@@ -237,9 +237,10 @@ impl Board {
         } else {
             for sq in LocStack(player_board.drones()) {
                 let mut moves = Self::gen_field_drone_moves(&tables, sq, occ);
-                let field_moves = moves & player as u32 & pawns;
+                let mut field_moves = moves & player as u32;
 
                 moves &= !field_moves;
+                field_moves &= pawns;
 
                 self.do_moves(sq, moves, &mut out);
                 self.do_field_moves(sq, field_moves, &mut out);
