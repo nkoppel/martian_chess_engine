@@ -4,6 +4,7 @@ use crate::position::*;
 use rand::seq::SliceRandom;
 
 use std::mem;
+use std::cmp::Ordering;
 
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::*;
@@ -100,7 +101,7 @@ impl<'a> Searcher<'a> {
             return self.pos.eval() + score;
         }
 
-        let mut moves = mem::replace(&mut self.moves[depth], Vec::new());
+        let mut moves = mem::take(&mut self.moves[depth]);
 
         self.pos.gen_moves(&mut moves);
         self.sort_moves(&mut moves);
@@ -144,7 +145,7 @@ impl<'a> Searcher<'a> {
 
         let mut best_moves = Vec::new();
         let mut best_score = -1000000;
-        let mut moves = mem::replace(&mut self.moves[depth], Vec::new());
+        let mut moves = mem::take(&mut self.moves[depth]);
 
         self.pos.gen_moves(&mut moves);
         self.sort_moves(&mut moves);
@@ -159,12 +160,16 @@ impl<'a> Searcher<'a> {
 
             self.pos.undo_move(u);
 
-            if score > best_score {
-                best_moves.clear();
-                best_moves.push(*m);
-                best_score = score;
-            } else if score == best_score {
-                best_moves.push(*m);
+            match score.cmp(&best_score) {
+                Ordering::Greater => {
+                    best_moves.clear();
+                    best_moves.push(*m);
+                    best_score = score;
+                }
+                Ordering::Equal => {
+                    best_moves.push(*m);
+                }
+                _ => {},
             }
         }
 
