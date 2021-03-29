@@ -1,6 +1,8 @@
 use crate::board::*;
 use crate::position::*;
 
+use rand::seq::SliceRandom;
+
 use std::mem;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -128,11 +130,11 @@ impl<'a> Searcher<'a> {
         alpha
     }
 
-    fn best_move(&mut self, depth: usize, now: Instant, time: u128)
-        -> (Option<Board>, i32)
+    fn best_moves(&mut self, depth: usize, now: Instant, time: u128)
+        -> (Vec<Board>, i32)
     {
         if self.pos.board.game_end() {
-            return (None, self.pos.eval() * 100);
+            return (Vec::new(), self.pos.eval() * 100);
         }
 
         let ind = (self.pos.board.0 % TABLE_SIZE as u64) as usize;
@@ -140,7 +142,7 @@ impl<'a> Searcher<'a> {
 
         let board_eq = self.pos.board == board && self.pos.get_player() == play;
 
-        let mut best_move = None;
+        let mut best_moves = Vec::new();
         let mut best_score = -1000000;
         let mut moves = mem::replace(&mut self.moves[depth], Vec::new());
 
@@ -149,7 +151,7 @@ impl<'a> Searcher<'a> {
 
         for m in moves.iter().rev() {
             if now.elapsed().as_millis() >= time {
-                return (None, 0);
+                return (Vec::new(), 0);
             }
 
             let u = self.pos.do_move(*m);
@@ -158,8 +160,11 @@ impl<'a> Searcher<'a> {
             self.pos.undo_move(u);
 
             if score > best_score {
-                best_move = Some(*m);
+                best_moves.clear();
+                best_moves.push(*m);
                 best_score = score;
+            } else if score == best_score {
+                best_moves.push(*m);
             }
         }
 
@@ -170,7 +175,7 @@ impl<'a> Searcher<'a> {
         moves.clear();
         self.moves[depth] = moves;
 
-        (best_move, best_score)
+        (best_moves, best_score)
     }
 
     pub fn into_position(self) -> Position<'a> {
@@ -181,7 +186,7 @@ impl<'a> Searcher<'a> {
         let time = time as u128;
         let now = Instant::now();
 
-        let mut best = None;
+        let mut best = Vec::new();
         let mut score = 0;
         let mut d = 1;
 
@@ -194,19 +199,22 @@ impl<'a> Searcher<'a> {
                 }
             }
 
-            match self.best_move(d, now, time) {
-                (None, _) => {
-                    return (best, score);
-                },
-                (m, s) => {
-                    best = m;
-                    score = s
-                }
+            let (m, s) = self.best_moves(d, now, time);
+
+            if m.is_empty() {
+                return (best.choose(&mut rand::thread_rng()).cloned(), score);
+            } else {
+                best = m;
+                score = s
             }
             d += 1;
         }
 
-        (best, score)
+        if best.is_empty() {
+            (None, score)
+        } else {
+            (best.choose(&mut rand::thread_rng()).cloned(), score)
+        }
     }
 }
 
