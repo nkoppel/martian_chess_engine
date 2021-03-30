@@ -237,10 +237,10 @@ impl Board {
         } else {
             for sq in LocStack(player_board.drones()) {
                 let mut moves = Self::gen_field_drone_moves(&tables, sq, occ);
-                let mut field_moves = moves & player as u32;
+                let mut field_moves = moves;
 
-                moves &= !field_moves;
-                field_moves &= pawns;
+                moves &= !player_occ;
+                field_moves &= pawns & player_occ;
 
                 self.do_moves(sq, moves, &mut out);
                 self.do_field_moves(sq, field_moves, &mut out);
@@ -520,5 +520,17 @@ mod tests {
         board2.gen_moves(false, Board(0), &tables, &mut moves);
 
         assert_eq!(moves.len(), 14);
+
+        let board3 = Board::from_desc("q3/4/4/4/4/4/4/3d");
+
+        board3.gen_moves(false, Board(0), &tables, &mut moves);
+
+        assert_eq!(moves.len(), 4);
+
+        let board4 = Board::from_desc("q3/4/4/4/4/4/4/3d");
+
+        board4.gen_moves(true, Board(0), &tables, &mut moves);
+
+        assert_eq!(moves.len(), 13);
     }
 }
