@@ -2,6 +2,7 @@ var board = [].fill.call({length: 32}, 0);
 var pieces = ["_", "^", "*", "A"];
 
 var render_images = ["", "pyramid_yellow.png", "pyramid_blue.png", "pyramid_red.png"];
+// var render_images = ["", "pyramid_white3.png", "pyramid_white2.png", "pyramid_white1.png"];
 var render_sizes = [0, 60, 70, 80];
 
 var square_width = 60

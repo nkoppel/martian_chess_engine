@@ -2,7 +2,18 @@
 
 convert -size 250x250 xc:white -alpha transparent \
     -fill black -draw "polygon 0,250 250,250 125,0" \
-    pyramid_black.png
+    -fill white -draw "polygon 34,229 216,229, 125,40" \
+    pyramid_white1.png
+
+convert -size 250x250 xc:white -alpha transparent \
+    -fill black -draw "polygon 0,250 250,250 125,0" \
+    -fill white -draw "polygon 39,226 211,226, 125,45" \
+    pyramid_white2.png
+
+convert -size 250x250 xc:white -alpha transparent \
+    -fill black -draw "polygon 0,250 250,250 125,0" \
+    -fill white -draw "polygon 45,222 205,222, 125,53" \
+    pyramid_white3.png
 
 convert -size 250x250 xc:white -alpha transparent \
     -fill black     -draw "polygon 0,250 250,250 125,0" \
