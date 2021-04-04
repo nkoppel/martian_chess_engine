@@ -24,7 +24,7 @@ impl Iterator for LocStack {
             None
         } else {
             let out = self.0.trailing_zeros();
-            self.0 ^= 1 << out;
+            self.0 &= self.0 - 1;
             Some(out as usize)
         }
     }
@@ -40,7 +40,7 @@ impl Iterator for LocStack64 {
             None
         } else {
             let out = self.0.trailing_zeros();
-            self.0 ^= 1 << out;
+            self.0 &= self.0 - 1;
             Some(out as usize)
         }
     }

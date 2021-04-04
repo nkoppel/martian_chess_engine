@@ -220,3 +220,19 @@ impl fmt::Display for Position<'_> {
         Ok(())
     }
 }
+
+
+#[allow(unused_imports)]
+mod tests {
+    extern crate test;
+    use test::Bencher;
+    use super::*;
+
+    #[bench]
+    fn b_eval(b: &mut Bencher) {
+        let tables = Tables::new();
+        let pos = Position::new(&tables);
+        
+        b.iter(|| test::black_box(&pos).eval());
+    }
+}
