@@ -45,11 +45,11 @@ jobs:
         rm -r www/build.sh www/src www/martian-engine/.gitignore
 
     - name: Push build in www directory to nkoppel.github.io
-      uses: nkoppel/push-files-to-another-repository@master
+      uses: nkoppel/push-files-to-another-repository@v1.1.0
       env:
         API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
       with:
         source-files: 'www/martian-engine'
-        destination-github-username: 'nkoppel'
-        destination-repository-name: 'nkoppel.github.io'
-        user-email: 'nathankoppel0@gmail.com'
+        destination-username: 'nkoppel'
+        destination-repository: 'nkoppel.github.io'
+        commit-email: 'nathankoppel0@gmail.com'
